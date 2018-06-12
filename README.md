@@ -1,6 +1,7 @@
 # BIprovision
-ansible playbook to prepare the LVM cfg allowing a ceph-ansible deploy using
-RGW bucket indexes on NVMe devices
+ansible playbook which prepares storage device partitions and builds an LVM configuration,
+allowing a ceph-ansible deploy (osd_scenario=lvm) placing both Filestore journals and
+RGW bucket indexes on NVMe devices.
 
 Key vars in yml file
 * TEARDOWNonly    <-- if defined then only peform device teardown
