@@ -229,5 +229,6 @@
   - name: Print closing message
     debug:
       msg: "Wrote LSBLK and LVS cmd output to /tmp/logfile.txt"
+    delegate_to: localhost
 
 
