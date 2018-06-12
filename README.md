@@ -1,5 +1,6 @@
 # BIprovision
-ansible playbook to do LVM cfg allowing NVMe bucket indexes
+ansible playbook to prepare the LVM cfg allowing a ceph-ansible deploy using
+RGW bucket indexes on NVMe devices
 
 Key vars in yml file
 * TEARDOWNonly    <-- if defined then only peform device teardown
