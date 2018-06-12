@@ -211,13 +211,5 @@
 #      - "{{nvmedev1_parts.stdout_lines}}"
 #################
 
-  - name: display LV configuration
-    shell: lvs
-    register: lvs
-  - debug: var=lvs.stdout_lines
 
-- name: display LSBLK output
-   shell: lsblk
-    register: lsblk
-  - debug: var=lsblk.stdout_lines
 
