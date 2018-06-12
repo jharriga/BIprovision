@@ -1,0 +1,266 @@
+---
+
+# ansible script to prepare OSD devices for osd_scenario=lvm
+# using Filestore
+#
+# Partitions two 800GB NVMe and 24 1.8TB HDD devices and then
+# creates logical vols
+# HDD based LVM logical volume will be named:
+#      /dev/vg-cephdata-$dev/lv-cephdata-$dev
+#      where $dev is the hdd device name
+# NVMe based LVM logical volumes will be named:
+#      /dev/vg-cephbi-$dev/lv-cephbi-$dev
+#      where $dev is the nvme device name
+
+- name: prepare for use of osd_scenario=lvm. Create partitions & logvols
+  hosts:
+  - osds
+
+  vars:
+# for when you only want to do teardown
+#  - TEARDOWNonly: 1
+
+#
+  # units for partition and LV sizes should be in MB
+  - datadev_size: 1800000
+  - nvmedev_size: 745000
+  # assumption: only one partition per slow device
+  # we wouldn't even use a partition to pvcreate 
+  # except that LVM seems to require it now
+# NVMe DEVICES - must all be the same size
+  - nvmedev1: /dev/nvme0n1
+  - nvmedev2: /dev/nvme1n1
+
+  # for device names ending in a digit, partitions have a prefix "p", 
+  # for device names ending in a letter  they do not
+  - partprefix: p
+  # sizes are in MB 
+  - nvme_FSjournal_size: 5850    # roundup to allow 5120 ceph osd journal
+#  - fs_journal_size: 1000
+#  - metalv_size: 1000
+
+# Which HDDs are cached on which of the FASTdevs - must be equal #
+# BAGL 6048r have 36 total hard disk drives and one NVME
+# Using 12 HDDs per NVMe device
+  - datadev1_hdds:
+    - /dev/sdc
+    - /dev/sdd
+    - /dev/sde
+    - /dev/sdf
+    - /dev/sdg
+    - /dev/sdh
+    - /dev/sdi
+    - /dev/sdj
+    - /dev/sdk
+    - /dev/sdl
+    - /dev/sdm
+    - /dev/sdn
+  - numHDDs: "{{datadev1_hdds|length}}"
+  - numJOURNALs: "{{ (numHDDs | int) + 1 }}"
+
+  - datadev2_hdds:
+    - /dev/sdo
+    - /dev/sdp
+    - /dev/sdq
+    - /dev/sdr
+    - /dev/sds
+    - /dev/sdt
+    - /dev/sdu
+    - /dev/sdv
+    - /dev/sdw
+    - /dev/sdx
+    - /dev/sdy
+    - /dev/sdz
+
+  tasks:
+  - name: calculate partition and LV sizes
+    local_action: "shell python calcPartitions.py {{nvmedev_size}} {{numJOURNALs}} {{nvme_FSjournal_size}}"
+    register: part_sizes
+
+  - set_fact: >
+      nvme_BI_size={{part_sizes.stdout_lines[0]}}
+
+  - name: identify partitions to use for nvme devices (NVMEdev1)
+    shell: "for n in `seq 1 {{numJOURNALs}}` ; do echo {{nvmedev1}}{{partprefix}}$n ; done"
+    register: nvmedev1_parts
+
+  - name: identify partitions to use for nvme devices (NVMEdev2)
+    shell: "for n in `seq 1 {{numJOURNALs}}` ; do echo {{nvmedev2}}{{partprefix}}$n ; done"
+    register: nvmedev2_parts
+
+  - name: check that lists are the same length (NVMEdev1)
+    shell: "echo {{nvmedev1_parts.stdout_lines}} {{datadev1_hdds}}"
+    failed_when: "{{nvmedev1_parts.stdout_lines|length}} != {{numJOURNALs}}"
+
+  - name: check that lists are the same length (NVMEdev2)
+    shell: "echo {{nvmedev2_parts.stdout_lines}} {{datadev2_hdds}}"
+    failed_when: "{{nvmedev2_parts.stdout_lines|length}} != {{numJOURNALs}}"
+
+# BEGIN TEARDOWN
+  - name: find any existing OSD filesystems
+    shell: "grep /var/lib/ceph/osd /proc/mounts | awk '{print $2}'"
+    register: old_osd_filesystems
+
+  - name: tear down any existing OSD filesystems
+    shell: "umount -v {{item}}"
+    with_items: "{{old_osd_filesystems.stdout_lines}}"
+
+  - name: kill all LVM commands that may have been hung
+    shell: "killall -q lvcreate pvcreate vgcreate lvconvert || echo -n"
+    failed_when: false
+
+## LogVols
+  - name: identify any existing ceph LVs
+    shell: "lvscan | grep lv-ceph | awk '/ACTIVE/ { print $2 }' | tr -d \"'\""
+    register: old_ceph_lvs
+
+  - name: tear down any existing LVM logical volumes
+    shell: "echo y | lvremove -f {{item}}"
+    with_items: "{{old_ceph_lvs.stdout_lines}}"
+
+## Volume Groups
+  - name: identify any existing ceph VGs
+    shell: "vgscan | grep vg-ceph | awk '/Found/ { print $4 }' | tr '\"' ' '"
+    register: old_ceph_vgs
+
+  - name: tear down any existing VG
+    shell: "vgremove -f {{item}}"
+    with_items: "{{old_ceph_vgs.stdout_lines}}"
+
+  - name: tear down any existing hdd PVs
+    shell: "pvdisplay {{item}}1 ; if [ $? == 0 ] ; then  pvremove --force --yes {{item}}1 ; fi "
+    with_items: 
+      - "{{datadev1_hdds}}"
+      - "{{datadev2_hdds}}"
+
+  - name: tear down any existing nvme PVs
+    shell: "pvdisplay {{item}} ; if [ $? == 0 ] ; then  pvremove --force --yes {{item}} ; fi "
+    with_items: 
+      - "{{nvmedev1_parts.stdout_lines}}"
+      - "{{nvmedev2_parts.stdout_lines}}"
+
+  - name: wait a sec
+    shell: sleep 1
+
+  - name: tear down datadev partitions
+    shell: "if [ -e {{item}}1 ] ; then parted -s {{item}} rm 1 ; fi"
+    with_items: 
+      - "{{datadev1_hdds}}"
+      - "{{datadev2_hdds}}"
+    
+  - name: tear down nvme partitions  (NVME1)
+    shell: "if [ -e {{item}} ] ; then parted -s {{nvmedev1}} rm `echo {{item}} | sed s,{{nvmedev1}}{{partprefix}},,` ; fi"
+    with_items:
+      - "{{nvmedev1_parts.stdout_lines}}"
+
+  - name: tear down nvme partitions  (NVME2)
+    shell: "if [ -e {{item}} ] ; then parted -s {{nvmedev2}} rm `echo {{item}} | sed s,{{nvmedev2}}{{partprefix}},,` ; fi"
+    with_items:
+      - "{{nvmedev2_parts.stdout_lines}}"
+
+  - block:
+      - name: end play if TEARDOWNonly is defined
+        debug:
+          msg: "ending play. TEARDOWNonly is defined"
+
+      - meta: end_play
+    when: TEARDOWNonly is defined
+# END TEARDOWNonly TASKS COMPLETE
+
+# START PARTITIONING
+  - name: make nvme device partition table
+    shell: "parted -s {{item}} mktable gpt && partprobe {{item}}"
+    with_items:
+      - "{{nvmedev1}}"
+      - "{{nvmedev2}}"
+
+# Create Partitions
+  - name: create Ceph data partitions on HDDs
+    shell: "parted -s {{item}} mklabel gpt; sleep 1; parted -a optimal -s {{item}} mkpart primary 1m {{datadev_size}}M"
+    with_items: 
+      - "{{datadev1_hdds}}"
+      - "{{datadev2_hdds}}"
+
+  - name: create Ceph nvme partitions on NVME devices
+#    script: "mkpart.sh {{nvmedev1}} {{datadev1_hdds|length}} {{total_per_osd_nvme_size}} {{nvme_FSjournal_size}}"
+    script: "makePartitions.sh {{item}} {{numJOURNALs}} {{nvme_BI_size}} {{nvme_FSjournal_size}}"
+    with_items:
+      - "{{nvmedev1}}"
+      - "{{nvmedev2}}"
+
+# LVM cfg for Ceph data device
+  - name: add Ceph data device as LVM PV
+    shell: "sleep 1 ; pvcreate -ff {{item}}1"
+    with_items:
+      - "{{datadev1_hdds}}"
+      - "{{datadev2_hdds}}"
+
+  - name: create Ceph data VGs
+    shell: "sleep 1 ; vgcreate vg-cephdata-`basename {{item}}` {{item}}1"
+    with_items: 
+      - "{{datadev1_hdds}}"
+      - "{{datadev2_hdds}}"
+
+  - name: create Ceph data LVs
+    shell: "echo y | lvcreate --name lv-cephdata-`basename {{item}}` -l 100%FREE vg-cephdata-`basename {{item}}` {{item}}1"
+    with_items: 
+      - "{{datadev1_hdds}}"
+      - "{{datadev2_hdds}}"
+
+# LVM cfg for Bucket Index on NVMe(s)
+  - name: add BI nvme partition as LVM PV
+    shell: "sleep 1 ; pvcreate -ff {{item}}p1"
+    with_items:
+      - "{{nvmedev1}}"
+      - "{{nvmedev2}}"
+
+  - name: create BI VG 
+    shell: "sleep 1 ; vgcreate vg-cephbi-`basename {{item}}` {{item}}p1"
+    with_items:
+      - "{{nvmedev1}}"
+      - "{{nvmedev2}}"
+
+  - name: create BI LV
+    shell: "(echo y | lvcreate --name lv-cephbi-`basename {{item}}` -l 100%FREE vg-cephbi-`basename {{item}}` {{item}}p1)"
+    with_items:
+      - "{{nvmedev1}}"
+      - "{{nvmedev2}}"
+
+################# SKIP: Filestore journal LVM cfg - use as block devices
+#  - name: add nvme partitions as LVM PV
+#    shell: "sleep 1 ; pvcreate -ff {{item}}"
+#    with_items: 
+#      - "{{nvmedev1_parts.stdout_lines}}"
+#
+#  - name: create FS journal VGs (NVMEdev1)
+#    shell: "sleep 1 ; vgcreate vg-cephjournal-`basename {{item.0}}` {{item.1}}"
+#    with_together:
+#      - "{{datadev1_hdds}}"
+#      - "{{nvmedev1_parts.stdout_lines}}"
+#
+#  - name: create FS journal LVs (NVMEdev1)
+#    shell: "vgnm=vg-cephjournal-`basename {{item.0}}` ; (echo y | lvcreate --name lv-cephjournal-`basename {{item.0}}` --size {{nvme_lv_size}}M $vgnm {{item.1}})"
+#    with_together:
+#      - "{{datadev1_hdds}}"
+#      - "{{nvmedev1_parts.stdout_lines}}"
+#################
+
+# Write ending configuration logfile
+  - name: save LV configuration
+    shell: lvs
+    run_once: true
+    register: lvs_out
+
+  - name: save LSBLK output
+    shell: lsblk
+    run_once: true
+    register: lsblk_out
+
+  - name: write cmd output to logfile
+    action: template src=templates/logfile.j2 dest=/tmp/logfile.txt
+    delegate_to: localhost
+
+  - name: Print closing message
+    debug:
+      msg: "Wrote LSBLK and LVS cmd output to /tmp/logfile.txt"
+    delegate_to: localhost
