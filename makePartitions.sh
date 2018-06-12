@@ -21,7 +21,8 @@ delay
 (( b = $b + $BI_sz ))
 
 # now add FS journal partitions
-for p in `seq 2 $parts` ; do
+(( totparts = $parts + 1 ))         # need extra partition for BI journal
+for p in `seq 2 $totparts` ; do
   (( e = $b + $ceph_journal_sz ))
   delay
   (parted -s -a optimal $dev mkpart logical ${b}M ${e}M && \
