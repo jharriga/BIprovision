@@ -63,12 +63,14 @@
       nvme_BI_size={{part_sizes.stdout_lines[0]}}
 
   - name: identify partitions to use for nvme devices (NVMEdev1)
-    shell: "for n in `seq 1 {{datadev1_hdds|length}}` ; do echo {{nvmedev1}}{{partprefix}}$n ; done"
+#    shell: "for n in `seq 1 {{datadev1_hdds|length}}` ; do echo {{nvmedev1}}{{partprefix}}$n ; done"
+    shell: "for n in `seq 1 {{numJOURNALs}}` ; do echo {{nvmedev1}}{{partprefix}}$n ; done"
     register: nvmedev1_parts
 
   - name: check that lists are the same length (NVMEdev1)
     shell: "echo {{nvmedev1_parts.stdout_lines}} {{datadev1_hdds}}"
-    failed_when: "{{nvmedev1_parts.stdout_lines|length}} != {{datadev1_hdds|length}}"
+#    failed_when: "{{nvmedev1_parts.stdout_lines|length}} != {{datadev1_hdds|length}}"
+    failed_when: "{{nvmedev1_parts.stdout_lines|length}} != {{numJOURNALs}}"
 
   - name: find any existing OSD filesystems
     shell: "grep /var/lib/ceph/osd /proc/mounts | awk '{print $2}'"
@@ -138,12 +140,14 @@
     shell: "parted -s {{item}} mktable gpt && partprobe {{item}}"
     with_items:
       - "{{nvmedev1}}"
+#      - "{{nvmedev2}}"
 
 # Create Partitions
   - name: create Ceph data partitions on HDDs
     shell: "parted -s {{item}} mklabel gpt; sleep 1; parted -a optimal -s {{item}} mkpart primary 1m {{datadev_size}}M"
     with_items: 
       - "{{datadev1_hdds}}"
+#      - "{{datadev2_hdds}}"
 
   - name: create Ceph nvme partitions on NVMEdev1
 #    script: "mkpart.sh {{nvmedev1}} {{datadev1_hdds|length}} {{total_per_osd_nvme_size}} {{nvme_FSjournal_size}}"
@@ -154,29 +158,41 @@
     shell: "sleep 1 ; pvcreate -ff {{item}}1"
     with_items:
      - "{{datadev1_hdds}}"
+#      - "{{datadev2_hdds}}"
 
   - name: create Ceph data VGs
     shell: "sleep 1 ; vgcreate vg-cephdata-`basename {{item}}` {{item}}1"
     with_items: 
       - "{{datadev1_hdds}}"
+#      - "{{datadev2_hdds}}"
 
   - name: create Ceph data LVs
 #    shell: "(( data_lv_size={{datadev_size}} - 90000 )) ; echo y | lvcreate --name lv-cephdata-`basename {{item}}` --size ${data_lv_size}M vg-cephdata-`basename {{item}}` {{item}}1"
     shell: "echo y | lvcreate --name lv-cephdata-`basename {{item}}` -l 100%FREE vg-cephdata-`basename {{item}}` {{item}}1"
     with_items: 
       - "{{datadev1_hdds}}"
+#      - "{{datadev2_hdds}}"
 
-# LVM cfg for Bucket Index
-  - name: add BI nvme partition as LVM PV (NVMdev1)
-    shell: "sleep 1 ; pvcreate -ff {{nvmedev1}}p1"
+# LVM cfg for Bucket Index on NVMe(s)
+  - name: add BI nvme partition as LVM PV
+    shell: "sleep 1 ; pvcreate -ff {{item}}p1"
+    with_items:
+      - "{{nvmedev1}}"
+#      - "{{nvmedev2}}"
 
-  - name: create BI VG (NVMEdev1)
-    shell: "sleep 1 ; vgcreate vg-cephbi-nvmedev1 {{nvmedev1}}p1"
+  - name: create BI VG 
+    shell: "sleep 1 ; vgcreate vg-cephbi-`basename {{item}}` {{item}}p1"
+    with_items:
+      - "{{nvmedev1}}"
+#      - "{{nvmedev2}}"
 
-  - name: create BI LV (NVMEdev1)
-    shell: "(echo y | lvcreate --name lv-cephbi-nvmedev1 -l 100%FREE vg-cephbi-nvmedev1 {{nvmedev1}}p1)"
+  - name: create BI LV
+    shell: "(echo y | lvcreate --name lv-cephbi-`basename {{item}}` -l 100%FREE vg-cephbi-`basename {{item}}` {{item}}p1)"
+    with_items:
+      - "{{nvmedev1}}"
+#      - "{{nvmedev2}}"
 
-################# journal LVM cfg
+################# Filestore journal LVM cfg
 #  - name: add nvme partitions as LVM PV
 #    shell: "sleep 1 ; pvcreate -ff {{item}}"
 #    with_items: 
@@ -199,4 +215,9 @@
     shell: lvs
     register: lvs
   - debug: var=lvs.stdout_lines
+
+- name: display LSBLK output
+   shell: lsblk
+    register: lsblk
+  - debug: var=lsblk.stdout_lines
 
