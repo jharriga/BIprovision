@@ -140,14 +140,12 @@
     shell: "parted -s {{item}} mktable gpt && partprobe {{item}}"
     with_items:
       - "{{nvmedev1}}"
-#      - "{{nvmedev2}}"
 
 # Create Partitions
   - name: create Ceph data partitions on HDDs
     shell: "parted -s {{item}} mklabel gpt; sleep 1; parted -a optimal -s {{item}} mkpart primary 1m {{datadev_size}}M"
     with_items: 
       - "{{datadev1_hdds}}"
-#      - "{{datadev2_hdds}}"
 
   - name: create Ceph nvme partitions on NVMEdev1
 #    script: "mkpart.sh {{nvmedev1}} {{datadev1_hdds|length}} {{total_per_osd_nvme_size}} {{nvme_FSjournal_size}}"
@@ -158,39 +156,33 @@
     shell: "sleep 1 ; pvcreate -ff {{item}}1"
     with_items:
      - "{{datadev1_hdds}}"
-#      - "{{datadev2_hdds}}"
 
   - name: create Ceph data VGs
     shell: "sleep 1 ; vgcreate vg-cephdata-`basename {{item}}` {{item}}1"
     with_items: 
       - "{{datadev1_hdds}}"
-#      - "{{datadev2_hdds}}"
 
   - name: create Ceph data LVs
 #    shell: "(( data_lv_size={{datadev_size}} - 90000 )) ; echo y | lvcreate --name lv-cephdata-`basename {{item}}` --size ${data_lv_size}M vg-cephdata-`basename {{item}}` {{item}}1"
     shell: "echo y | lvcreate --name lv-cephdata-`basename {{item}}` -l 100%FREE vg-cephdata-`basename {{item}}` {{item}}1"
     with_items: 
       - "{{datadev1_hdds}}"
-#      - "{{datadev2_hdds}}"
 
 # LVM cfg for Bucket Index on NVMe(s)
   - name: add BI nvme partition as LVM PV
     shell: "sleep 1 ; pvcreate -ff {{item}}p1"
     with_items:
       - "{{nvmedev1}}"
-#      - "{{nvmedev2}}"
 
   - name: create BI VG 
     shell: "sleep 1 ; vgcreate vg-cephbi-`basename {{item}}` {{item}}p1"
     with_items:
       - "{{nvmedev1}}"
-#      - "{{nvmedev2}}"
 
   - name: create BI LV
     shell: "(echo y | lvcreate --name lv-cephbi-`basename {{item}}` -l 100%FREE vg-cephbi-`basename {{item}}` {{item}}p1)"
     with_items:
       - "{{nvmedev1}}"
-#      - "{{nvmedev2}}"
 
 ################# Filestore journal LVM cfg
 #  - name: add nvme partitions as LVM PV
