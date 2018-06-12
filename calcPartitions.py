@@ -11,7 +11,8 @@ fastdev_size = int(argv[1])
 num_journals = int(argv[2])
 ssd_journal_size = int(argv[3])
 
-journal_space = (ssd_journal_size + 500) * num_journals
+tot_journals = num_journals + 1      # add the extra journal for BI partition
+journal_space = ssd_journal_size * tot_journals
 bi_space = (fastdev_size - 1000.0) - journal_space
 
 bi_size = bi_space / MiB_per_MB
