@@ -2,6 +2,8 @@
 ansible playbook which prepares storage device partitions and builds an LVM configuration,
 allowing a ceph-ansible deploy (osd_scenario=lvm) placing both Filestore journals and
 RGW bucket indexes on NVMe devices.
+* FS_1nvme_noCache.yml  <-- for OSD systems with one NVME device
+* FS_2nvme_noCache.yml  <-- for OSD systems with two NVME devices
 
 Key vars in yml file
 * TEARDOWNonly    <-- if defined then only peform device teardown
