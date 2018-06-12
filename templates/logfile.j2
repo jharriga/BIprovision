@@ -1,10 +1,6 @@
-PARTITION SIZES:
-----------------
+BucketIndex PARTITION SIZE:
+---------------------------
 {{ part_sizes.stdout_lines | to_yaml }}
-
-NVMe PARTITIONS:
-----------------
-{{ nvmedev1_parts.stdout_lines | to_yaml }}
 
 LSBLK output:
 -------------
