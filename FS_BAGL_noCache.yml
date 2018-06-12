@@ -211,5 +211,23 @@
 #      - "{{nvmedev1_parts.stdout_lines}}"
 #################
 
+# Write ending configuration logfile
+  - name: save LV configuration
+    shell: lvs
+    run_once: true
+    register: lvs_out
+
+  - name: save LSBLK output
+    shell: lsblk
+    run_once: true
+    register: lsblk_out
+
+  - name: write cmd output to logfile
+    action: template src=templates/logfile.j2 dest=/tmp/logfile.txt
+    delegate_to: localhost
+
+  - name: Print closing message
+    debug:
+      msg: "Wrote LSBLK and LVS cmd output to /tmp/logfile.txt"
 
 
