@@ -1,0 +1,86 @@
+Here is an excerpt from the 'group_vars/osds.yml' file which matches the
+storage device configuration created by the playbook.
+This run was done using two NVMe's and 24 HDDs.
+
+# JTH - confgure to use LVM. Devices were pre-configured by ansible playbook
+osd_scenario: lvm
+lvm_volumes:
+  - data: lv-cephbi-nvme0n1
+    journal: /dev/nvme0n1p2
+    data_vg: vg-cephbi-nvme0n1
+  - data: lv-cephdata-sdc
+    journal: /dev/nvme0n1p3
+    data_vg: vg-cephdata-sdc
+  - data: lv-cephdata-sdd
+    journal: /dev/nvme0n1p4
+    data_vg: vg-cephdata-sdd
+  - data: lv-cephdata-sde
+    journal: /dev/nvme0n1p5
+    data_vg: vg-cephdata-sde
+  - data: lv-cephdata-sdf
+    journal: /dev/nvme0n1p6
+    data_vg: vg-cephdata-sdf
+  - data: lv-cephdata-sdh
+    journal: /dev/nvme0n1p7
+    data_vg: vg-cephdata-sdh
+  - data: lv-cephdata-sdi
+    journal: /dev/nvme0n1p8
+    data_vg: vg-cephdata-sdi
+  - data: lv-cephdata-sdj
+    journal: /dev/nvme0n1p9
+    data_vg: vg-cephdata-sdj
+  - data: lv-cephdata-sdk
+    journal: /dev/nvme0n1p10
+    data_vg: vg-cephdata-sdk
+  - data: lv-cephdata-sdl
+    journal: /dev/nvme0n1p11
+    data_vg: vg-cephdata-sdl
+  - data: lv-cephdata-sdm
+    journal: /dev/nvme0n1p12
+    data_vg: vg-cephdata-sdm
+  - data: lv-cephdata-sdn
+    journal: /dev/nvme0n1p13
+    data_vg: vg-cephdata-sdn
+  - data: lv-cephdata-sdo
+    journal: /dev/nvme0n1p14
+    data_vg: vg-cephdata-sdo
+  - data: lv-cephbi-nvme1n1
+    journal: /dev/nvme1n1p2
+    data_vg: vg-cephbi-nvme1n1
+  - data: lv-cephdata-sdp
+    journal: /dev/nvme1n1p3
+    data_vg: vg-cephdata-sdp
+  - data: lv-cephdata-sdq
+    journal: /dev/nvme1n1p4
+    data_vg: vg-cephdata-sdq
+  - data: lv-cephdata-sdr
+    journal: /dev/nvme1n1p5
+    data_vg: vg-cephdata-sdr
+  - data: lv-cephdata-sds
+    journal: /dev/nvme1n1p6
+    data_vg: vg-cephdata-sds
+  - data: lv-cephdata-sdt
+    journal: /dev/nvme1n1p7
+    data_vg: vg-cephdata-sdt
+  - data: lv-cephdata-sdu
+    journal: /dev/nvme1n1p8
+    data_vg: vg-cephdata-sdu
+  - data: lv-cephdata-sdv
+    journal: /dev/nvme1n1p9
+    data_vg: vg-cephdata-sdv
+  - data: lv-cephdata-sdw
+    journal: /dev/nvme1n1p10
+    data_vg: vg-cephdata-sdw
+  - data: lv-cephdata-sdx
+    journal: /dev/nvme1n1p11
+    data_vg: vg-cephdata-sdx
+  - data: lv-cephdata-sdy
+    journal: /dev/nvme1n1p12
+    data_vg: vg-cephdata-sdy
+  - data: lv-cephdata-sdz
+    journal: /dev/nvme1n1p13
+    data_vg: vg-cephdata-sdz
+  - data: lv-cephdata-sdaa
+    journal: /dev/nvme1n1p14
+    data_vg: vg-cephdata-sdaa
+
