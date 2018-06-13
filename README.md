@@ -5,6 +5,8 @@ RGW bucket indexes on NVMe devices.
 * FS_1nvme_noCache.yml  <-- for OSD systems with one NVME device
 * FS_2nvme_noCache.yml  <-- for OSD systems with two NVME devices
 
+NOTE: the file osdScenario.txt is an example excerpt to be inserted in group_vars/osds.yml
+
 Key vars in yml file
 * TEARDOWNonly    <-- if defined then only peform device teardown
 * datadev_size    <-- how large are the HDDs?
