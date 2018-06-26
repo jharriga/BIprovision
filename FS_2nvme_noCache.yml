@@ -57,6 +57,7 @@
     - /dev/sdn
   - numHDDs: "{{datadev1_hdds|length}}"
   - numJOURNALs: "{{ (numHDDs | int) + 1 }}"
+  - numNVMeParts: "{{ (numJOURNALs | int) + 1 }}"
 
   - datadev2_hdds:
     - /dev/sdo
@@ -81,20 +82,20 @@
       nvme_BI_size={{part_sizes.stdout_lines[0]}}
 
   - name: identify partitions to use for nvme devices (NVMEdev1)
-    shell: "for n in `seq 1 {{numJOURNALs}}` ; do echo {{nvmedev1}}{{partprefix}}$n ; done"
+    shell: "for n in `seq 1 {{numNVMeParts}}` ; do echo {{nvmedev1}}{{partprefix}}$n ; done"
     register: nvmedev1_parts
 
   - name: identify partitions to use for nvme devices (NVMEdev2)
-    shell: "for n in `seq 1 {{numJOURNALs}}` ; do echo {{nvmedev2}}{{partprefix}}$n ; done"
+    shell: "for n in `seq 1 {{numNVMeParts}}` ; do echo {{nvmedev2}}{{partprefix}}$n ; done"
     register: nvmedev2_parts
 
   - name: check that lists are the same length (NVMEdev1)
     shell: "echo {{nvmedev1_parts.stdout_lines}} {{datadev1_hdds}}"
-    failed_when: "{{nvmedev1_parts.stdout_lines|length}} != {{numJOURNALs}}"
+    failed_when: "{{nvmedev1_parts.stdout_lines|length}} != {{numNVMeParts}}"
 
   - name: check that lists are the same length (NVMEdev2)
     shell: "echo {{nvmedev2_parts.stdout_lines}} {{datadev2_hdds}}"
-    failed_when: "{{nvmedev2_parts.stdout_lines|length}} != {{numJOURNALs}}"
+    failed_when: "{{nvmedev2_parts.stdout_lines|length}} != {{numNVMeParts}}"
 
 # BEGIN TEARDOWN
   - name: find any existing OSD filesystems
