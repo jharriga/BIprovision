@@ -52,6 +52,7 @@
     - /dev/sdn
   - numHDDs: "{{datadev1_hdds|length}}"
   - numJOURNALs: "{{ (numHDDs | int) + 1 }}"
+  - numNVMeParts: "{{ (numJOURNALs | int) + 1 }}"
 
   tasks:
   - name: calculate partition and LV sizes
@@ -64,13 +65,13 @@
 
   - name: identify partitions to use for nvme devices (NVMEdev1)
 #    shell: "for n in `seq 1 {{datadev1_hdds|length}}` ; do echo {{nvmedev1}}{{partprefix}}$n ; done"
-    shell: "for n in `seq 1 {{numJOURNALs}}` ; do echo {{nvmedev1}}{{partprefix}}$n ; done"
+    shell: "for n in `seq 1 {{numNVMeParts}}` ; do echo {{nvmedev1}}{{partprefix}}$n ; done"
     register: nvmedev1_parts
 
   - name: check that lists are the same length (NVMEdev1)
     shell: "echo {{nvmedev1_parts.stdout_lines}} {{datadev1_hdds}}"
 #    failed_when: "{{nvmedev1_parts.stdout_lines|length}} != {{datadev1_hdds|length}}"
-    failed_when: "{{nvmedev1_parts.stdout_lines|length}} != {{numJOURNALs}}"
+    failed_when: "{{nvmedev1_parts.stdout_lines|length}} != {{numNVMeParts}}"
 
   - name: find any existing OSD filesystems
     shell: "grep /var/lib/ceph/osd /proc/mounts | awk '{print $2}'"
