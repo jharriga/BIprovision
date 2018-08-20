@@ -17,3 +17,38 @@ Key vars in yml file
 Helper scripts
 * calcPartitions.py   <-- determines size of BucketIndex NVMe partition
 * makePartitions.sh   <-- creates partitions on NVMe device(s)
+
+
+USAGE PROCEDURE
+---------------
+# git clone https://github.com/jharriga/BIprovision
+# cd BIprovision   
+# ansible-playbook FS_2nvme_noCache.yml
+# cat /tmp/logfile.txt
+# vi /root/ceph-ansible/group_vars/osds.yml   (to use osd_scenario=lvm, mega edits)
+# JTH - confgure to use LVM. Devices pre configured
+osd_scenario: lvm
+lvm_volumes:
+  - data: lv-cephbi-nvme0n1
+    journal: /dev/nvme0n1p2
+    data_vg: vg-cephbi-nvme0n1
+  - data: lv-cephdata-sdc
+    journal: /dev/nvme0n1p3
+    data_vg: vg-cephdata-sdc
+  - data: lv-cephdata-sdd
+    < SNIP >
+
+
+# ansible-playbook site.yml
+   < RUNS FOR 45 minutes…>
+# ceph -s ← HEALTH_OK  312 OSDs
+
+TO USE THE NVMe-based Bucket Index OSDs
+---------------------------------------
+Create a new crush rule
+# ceph osd crush rule create-replicated bucketindex default host ssd                       
+# ceph osd crush rule ls
+# ceph osd crush rule dump bucketindex
+
+Create a pool using the new rule
+# ceph osd pool create bucket-pool 256 256 replicated bucketindex
