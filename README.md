@@ -21,11 +21,11 @@ Helper scripts
 
 USAGE PROCEDURE
 ---------------
-* # git clone https://github.com/jharriga/BIprovision
-* # cd BIprovision   
-* # ansible-playbook FS_2nvme_noCache.yml
-* # cat /tmp/logfile.txt
-* # vi /root/ceph-ansible/group_vars/osds.yml   (to use osd_scenario=lvm, mega edits)
+* git clone https://github.com/jharriga/BIprovision
+* cd BIprovision   
+* ansible-playbook FS_2nvme_noCache.yml
+* cat /tmp/logfile.txt
+* vi /root/ceph-ansible/group_vars/osds.yml   (to use osd_scenario=lvm, mega edits)
 osd_scenario: lvm
 lvm_volumes:
   - data: lv-cephbi-nvme0n1
@@ -38,16 +38,16 @@ lvm_volumes:
     < SNIP >
 
 
-* # ansible-playbook site.yml
+* ansible-playbook site.yml
    < RUNS FOR 45 minutes…>
-* # ceph -s ← HEALTH_OK  312 OSDs
+* ceph -s ← HEALTH_OK  312 OSDs
 
 TO USE THE NVMe-based Bucket Index OSDs
 ---------------------------------------
 Create a new crush rule
-* # ceph osd crush rule create-replicated bucketindex default host ssd                       
-* # ceph osd crush rule ls
-* # ceph osd crush rule dump bucketindex
+* ceph osd crush rule create-replicated bucketindex default host ssd                       
+* ceph osd crush rule ls
+* ceph osd crush rule dump bucketindex
 
 Create a pool using the new rule
-* # ceph osd pool create bucket-pool 256 256 replicated bucketindex
+* ceph osd pool create bucket-pool 256 256 replicated bucketindex
