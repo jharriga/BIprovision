@@ -25,18 +25,7 @@ USAGE PROCEDURE
 * cd BIprovision   
 * ansible-playbook FS_2nvme_noCache.yml
 * cat /tmp/logfile.txt
-* vi /root/ceph-ansible/group_vars/osds.yml   (to use osd_scenario=lvm, mega edits)
-osd_scenario: lvm
-lvm_volumes:
-  - data: lv-cephbi-nvme0n1
-    journal: /dev/nvme0n1p2
-    data_vg: vg-cephbi-nvme0n1
-  - data: lv-cephdata-sdc
-    journal: /dev/nvme0n1p3
-    data_vg: vg-cephdata-sdc
-  - data: lv-cephdata-sdd
-    < SNIP >
-
+* vi /root/ceph-ansible/group_vars/osds.yml  <-- see osd.txt
 
 * ansible-playbook site.yml
    < RUNS FOR 45 minutes…>
