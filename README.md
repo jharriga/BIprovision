@@ -25,7 +25,7 @@ USAGE PROCEDURE
 * cd BIprovision   
 * ansible-playbook FS_2nvme_noCache.yml
 * cat /tmp/logfile.txt
-* vi /root/ceph-ansible/group_vars/osds.yml  <-- see osd.txt
+* vi /root/ceph-ansible/group_vars/osds.yml  <-- see osdScenario.txt
 
 * ansible-playbook site.yml
    < RUNS FOR 45 minutes…>
