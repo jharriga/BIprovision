@@ -124,6 +124,11 @@
   - name: tear down nvme partitions (NVMEdev1)
     shell: "if [ -e {{item}} ] ; then parted -s {{nvmedev1}} rm `echo {{item}} | sed s,{{nvmedev1}}{{partprefix}},,` ; fi"
     with_items: "{{nvmedev1_parts.stdout_lines}}"
+    
+  - name: remove GPT signatures
+    shell: "wipefs -a {{ item }}"
+    with_items: 
+      - "{{datadev1_hdds}}"
 
   - block:
       - name: end play if TEARDOWNonly is defined
